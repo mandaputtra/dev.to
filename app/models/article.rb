@@ -4,6 +4,10 @@ class Article < ApplicationRecord
   include AlgoliaSearch
   include Storext.model
   include Reactable
+  include Searchable
+
+  SEARCH_SERIALIZER = Search::ArticleSerializer
+  SEARCH_CLASS = Search::FeedContent
 
   acts_as_taggable_on :tags
   resourcify
@@ -71,6 +75,8 @@ class Article < ApplicationRecord
 
   after_update_commit :update_notifications, if: proc { |article| article.notifications.any? && !article.saved_changes.empty? }
   after_commit :async_score_calc, :update_main_image_background_hex, :touch_collection
+  after_commit :index_to_elasticsearch, on: %i[create update]
+  after_commit :remove_from_elasticsearch, on: [:destroy]
 
   before_destroy :before_destroy_actions, prepend: true
 
